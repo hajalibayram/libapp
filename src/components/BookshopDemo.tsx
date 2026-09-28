@@ -9,7 +9,6 @@ import {
   ScanMode,
   ScanResult,
   dashboardStats,
-  demoUsers,
   exportInventoryCsv,
   findBookById,
   searchBooks
@@ -53,8 +52,7 @@ export function BookshopDemo() {
     setState(nextState);
   }
 
-  function login(userId: string) {
-    const user = demoUsers.find((candidate) => candidate.id === userId) ?? demoUsers[0];
+  function login(user: DemoUser) {
     setCurrentUser(user);
     localStorage.setItem(sessionKey, JSON.stringify(user));
     navigate("/");
@@ -201,34 +199,68 @@ export function BookshopDemo() {
   );
 }
 
-function Login({ onLogin }: { onLogin: (userId: string) => void }) {
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+function Login({ onLogin }: { onLogin: (user: DemoUser) => void }) {
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    onLogin(String(formData.get("user") || demoUsers[0].id));
+    const email = String(formData.get("email") || "");
+    const password = String(formData.get("password") || "");
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const body = (await response.json().catch(() => ({}))) as { user?: DemoUser; status?: string };
+
+      if (!response.ok || !body.user) {
+        setError(loginErrorMessage(body.status));
+        return;
+      }
+
+      onLogin(body.user);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <main className="login">
       <section className="login-panel">
         <h1>Volunteer Bookshop</h1>
-        <p className="muted">Local demo login. Use either demo account to test role behavior.</p>
+        <p className="muted">Log in with the email and password created in Supabase Auth.</p>
         <form className="grid" onSubmit={handleSubmit}>
           <label>
-            Account
-            <select name="user">
-              {demoUsers.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.role})
-                </option>
-              ))}
-            </select>
+            Email
+            <input name="email" type="email" autoComplete="email" placeholder="volunteer@bookshop.test" required />
           </label>
-          <button type="submit">Log in</button>
+          <label>
+            Password
+            <input name="password" type="password" autoComplete="current-password" required />
+          </label>
+          {error ? <p className="form-error">{error}</p> : null}
+          <button type="submit" disabled={submitting}>
+            {submitting ? "Logging in" : "Log in"}
+          </button>
         </form>
       </section>
     </main>
   );
+}
+
+function loginErrorMessage(status: string | undefined): string {
+  if (status === "MISSING_CREDENTIALS") return "Enter an email and password.";
+  if (status === "PROFILE_NOT_ACTIVE") return "This user does not have an active bookshop profile.";
+  if (status === "INVALID_LOGIN") return "Email or password is incorrect.";
+  return "Login failed. Check the Supabase user and profile setup.";
 }
 
 function Dashboard({ state, onReset, onSearch }: { state: DemoState; onReset: () => void; onSearch: (query: string) => void }) {
@@ -420,7 +452,7 @@ function InventoryPage({
           <option value="out">Out of stock</option>
         </select>
       </form>
-      <section className="panel">{books.length ? <BookTable books={books} /> : <div className="empty">No books match this search.</div>}</section>
+      <section className="panel table-panel">{books.length ? <BookTable books={books} /> : <div className="empty">No books match this search.</div>}</section>
     </section>
   );
 }
@@ -572,7 +604,7 @@ function Forbidden() {
 
 function BookTable({ books }: { books: Book[] }) {
   return (
-    <table>
+    <table className="inventory-table">
       <thead>
         <tr>
           <th>Cover</th>
@@ -585,16 +617,16 @@ function BookTable({ books }: { books: Book[] }) {
       <tbody>
         {books.map((book) => (
           <tr className="clickable" key={book.id} onClick={() => navigate(`/books/${encodeURIComponent(book.id)}`)}>
-            <td>
-              <Cover book={book} />
+            <td className="cover-cell">
+              <Cover book={book} variant="compact" />
             </td>
-            <td>
-              <strong>{book.title}</strong>
+            <td className="title-cell">
+              <strong className="book-title">{book.title}</strong>
               <br />
-              <span className="muted">{book.publisher}</span>
+              <span className="book-subtitle">{book.publisher || "Unknown publisher"}</span>
             </td>
-            <td>{book.authors.join(", ")}</td>
-            <td>{book.isbn13 || book.isbn10}</td>
+            <td className="text-cell">{book.authors.join(", ")}</td>
+            <td className="isbn-cell">{book.isbn13 || book.isbn10}</td>
             <td>
               <span className={`qty ${book.quantity > 0 ? "in" : "out"}`}>{book.quantity}</span>
             </td>
@@ -646,16 +678,17 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function Cover({ book }: { book: Pick<Book, "coverUrl" | "title"> | { coverUrl: string | null; title: string } }) {
+function Cover({ book, variant }: { book: Pick<Book, "coverUrl" | "title"> | { coverUrl: string | null; title: string }; variant?: "compact" }) {
+  const className = variant === "compact" ? "cover cover-compact" : "cover";
   if (book.coverUrl) {
     return (
-      <div className="cover">
+      <div className={className}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={book.coverUrl} alt={`Cover of ${book.title}`} loading="lazy" />
       </div>
     );
   }
-  return <div className="cover">No cover</div>;
+  return <div className={className}>No cover</div>;
 }
 
 function NavLink({ route, label, activeRoute }: { route: Route; label: string; activeRoute: Route }) {

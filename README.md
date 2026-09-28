@@ -13,7 +13,7 @@ Done:
 
 - Next.js App Router
 - TypeScript
-- Local demo login for Volunteer and Admin roles
+- Supabase email/password login
 - Add Books and Remove Books scan screens
 - Scanner-friendly ISBN input with automatic focus
 - ISBN normalization and checksum validation
@@ -73,15 +73,15 @@ Then open:
 http://localhost:3001
 ```
 
-## Demo Login
+## Login
 
-Use either account from the login selector:
+Create users in Supabase Authentication, then log in with their email/password.
+For the setup guide, use:
 
-- `Volunteer Demo` for normal add/remove/search workflows
-- `Admin Demo` for export and user-page access
-
-These are local demo users only. There is no password or real authentication in
-this version.
+```text
+admin@bookshop.test
+volunteer@bookshop.test
+```
 
 ## Scanner Test Flow
 

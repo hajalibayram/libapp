@@ -1,10 +1,11 @@
 :root {
   color-scheme: light;
-  --bg: #f7f5f0;
+  --bg: #f6f7f4;
   --panel: #ffffff;
   --ink: #202124;
   --muted: #666a70;
-  --line: #d7d2c7;
+  --line: #dfe3da;
+  --line-strong: #c7cec1;
   --green: #0f7a4d;
   --green-weak: #e6f3ed;
   --red: #b42318;
@@ -184,6 +185,15 @@ h2 {
   color: var(--muted);
 }
 
+.form-error {
+  background: var(--red-weak);
+  border: 1px solid #f1aca5;
+  border-radius: 8px;
+  color: var(--red);
+  margin-bottom: 0;
+  padding: 0.7rem 0.8rem;
+}
+
 .grid {
   display: grid;
   gap: 1rem;
@@ -314,6 +324,13 @@ h2 {
   text-align: center;
 }
 
+.cover-compact {
+  border-radius: 4px;
+  flex-basis: 34px;
+  font-size: 0;
+  width: 34px;
+}
+
 .cover img {
   height: 100%;
   object-fit: cover;
@@ -328,6 +345,11 @@ h2 {
   margin-bottom: 1rem;
 }
 
+.table-panel {
+  overflow: hidden;
+  padding: 0;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
@@ -336,14 +358,17 @@ table {
 th,
 td {
   border-bottom: 1px solid var(--line);
-  padding: 0.7rem;
+  padding: 0.62rem 0.75rem;
   text-align: left;
   vertical-align: middle;
 }
 
 th {
-  background: #f3efe7;
-  font-size: 0.8rem;
+  background: #f7f8f5;
+  border-bottom-color: var(--line-strong);
+  color: #586157;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -352,15 +377,55 @@ tr.clickable {
 }
 
 tr.clickable:hover {
-  background: #fbf8f0;
+  background: #f8faf6;
+}
+
+.inventory-table th:first-child,
+.inventory-table td:first-child {
+  width: 54px;
+}
+
+.inventory-table th:last-child,
+.inventory-table td:last-child {
+  text-align: right;
+  width: 88px;
+}
+
+.inventory-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.cover-cell {
+  padding-right: 0.35rem;
+}
+
+.title-cell {
+  min-width: 220px;
+}
+
+.book-title {
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.book-subtitle,
+.text-cell,
+.isbn-cell {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.isbn-cell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  white-space: nowrap;
 }
 
 .qty {
   border-radius: 999px;
   display: inline-block;
   font-weight: 800;
-  min-width: 42px;
-  padding: 0.25rem 0.55rem;
+  min-width: 34px;
+  padding: 0.18rem 0.48rem;
   text-align: center;
 }
 
