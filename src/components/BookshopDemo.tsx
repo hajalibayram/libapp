@@ -19,6 +19,20 @@ type ScanApiResponse = ScanResult & {
   state: DemoState;
   stats?: ReturnType<typeof dashboardStats>;
 };
+type BarcodeDetectionResult = {
+  rawValue?: string;
+};
+type BarcodeDetectorInstance = {
+  detect: (source: HTMLVideoElement) => Promise<BarcodeDetectionResult[]>;
+};
+type BarcodeDetectorConstructor = {
+  new (options?: { formats?: string[] }): BarcodeDetectorInstance;
+  getSupportedFormats?: () => Promise<string[]>;
+};
+type BarcodeDetectorWindow = Window &
+  typeof globalThis & {
+    BarcodeDetector?: BarcodeDetectorConstructor;
+  };
 
 export function BookshopDemo() {
   const [state, setState] = useState<DemoState | null>(null);
@@ -357,6 +371,7 @@ function ScanPage({
   onUndo: (transactionId: string) => void;
 }) {
   const isAdd = mode === "ADD";
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -382,8 +397,144 @@ function ScanPage({
           {processingScan ? "Processing" : "Submit"}
         </button>
       </form>
+      <div className="scan-tools">
+        <button type="button" className="secondary" onClick={() => setCameraOpen((open) => !open)} disabled={processingScan}>
+          {cameraOpen ? "Close camera" : "Scan with camera"}
+        </button>
+      </div>
+      {cameraOpen ? <CameraScanner mode={mode} processingScan={processingScan} onScan={onScan} /> : null}
       <ScanResultView result={lastResult} onUndo={onUndo} />
     </section>
+  );
+}
+
+function CameraScanner({
+  mode,
+  processingScan,
+  onScan
+}: {
+  mode: ScanMode;
+  processingScan: boolean;
+  onScan: (mode: ScanMode, value: string) => Promise<void>;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const detectorRef = useRef<BarcodeDetectorInstance | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const lastScanRef = useRef<{ value: string; time: number } | null>(null);
+  const detectBusyRef = useRef(false);
+  const onScanRef = useRef(onScan);
+  const processingRef = useRef(processingScan);
+  const [status, setStatus] = useState("Starting camera...");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
+
+  useEffect(() => {
+    processingRef.current = processingScan;
+  }, [processingScan]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function startCamera() {
+      try {
+        const barcodeWindow = window as BarcodeDetectorWindow;
+        if (!barcodeWindow.BarcodeDetector) {
+          setError("Camera barcode scanning is not supported by this browser. Use manual entry or a USB scanner.");
+          return;
+        }
+
+        const supportedFormats = barcodeWindow.BarcodeDetector.getSupportedFormats ? await barcodeWindow.BarcodeDetector.getSupportedFormats() : [];
+        const requestedFormats = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"];
+        const formats = supportedFormats.length ? requestedFormats.filter((format) => supportedFormats.includes(format)) : requestedFormats;
+
+        if (supportedFormats.length && !formats.includes("ean_13")) {
+          setError("This browser camera scanner does not support EAN-13 book barcodes.");
+          return;
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" }
+          }
+        });
+
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        const video = videoRef.current;
+        if (!video) return;
+
+        streamRef.current = stream;
+        detectorRef.current = new barcodeWindow.BarcodeDetector({ formats });
+        video.srcObject = stream;
+        await video.play();
+        setStatus("Point the camera at the ISBN barcode.");
+        scanFrame();
+      } catch {
+        setError("Camera access failed. Check browser permissions, then try again.");
+      }
+    }
+
+    function scanFrame() {
+      const video = videoRef.current;
+      const detector = detectorRef.current;
+      if (!video || !detector) return;
+
+      animationRef.current = window.requestAnimationFrame(scanFrame);
+
+      if (detectBusyRef.current || processingRef.current || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        return;
+      }
+
+      detectBusyRef.current = true;
+      void detector
+        .detect(video)
+        .then((barcodes) => {
+          const value = barcodes.find((barcode) => barcode.rawValue)?.rawValue?.trim();
+          if (!value) return;
+
+          const now = Date.now();
+          const previous = lastScanRef.current;
+          if (previous?.value === value && now - previous.time < 1800) return;
+
+          lastScanRef.current = { value, time: now };
+          setStatus(`Detected ${value}`);
+          void onScanRef.current(mode, value);
+        })
+        .catch(() => {
+          setStatus("Keep the barcode steady in the frame.");
+        })
+        .finally(() => {
+          detectBusyRef.current = false;
+        });
+    }
+
+    void startCamera();
+
+    return () => {
+      cancelled = true;
+      if (animationRef.current !== null) {
+        window.cancelAnimationFrame(animationRef.current);
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, [mode]);
+
+  return (
+    <div className="camera-panel">
+      <div className="camera-frame">
+        <video ref={videoRef} muted playsInline autoPlay />
+        <div className="camera-guide" aria-hidden="true" />
+      </div>
+      <p className={error ? "camera-status error" : "camera-status"}>{error || status}</p>
+    </div>
   );
 }
 

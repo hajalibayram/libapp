@@ -19,6 +19,10 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -39,6 +43,7 @@ button {
   color: #fff;
   cursor: pointer;
   font-weight: 700;
+  min-height: 44px;
   padding: 0.72rem 1rem;
 }
 
@@ -270,6 +275,50 @@ h2 {
   font-size: 1.25rem;
 }
 
+.scan-tools {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.camera-panel {
+  margin-top: 1rem;
+}
+
+.camera-frame {
+  aspect-ratio: 4 / 3;
+  background: #121712;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.camera-frame video {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.camera-guide {
+  border: 2px solid rgba(255, 255, 255, 0.86);
+  border-left-width: 0;
+  border-right-width: 0;
+  height: 34%;
+  left: 10%;
+  position: absolute;
+  right: 10%;
+  top: 33%;
+}
+
+.camera-status {
+  color: var(--muted);
+  margin: 0.6rem 0 0;
+}
+
+.camera-status.error {
+  color: var(--red);
+}
+
 .scan-result {
   border-radius: 8px;
   margin-top: 1rem;
@@ -346,12 +395,13 @@ h2 {
 }
 
 .table-panel {
-  overflow: hidden;
+  overflow-x: auto;
   padding: 0;
 }
 
 table {
   border-collapse: collapse;
+  min-width: 720px;
   width: 100%;
 }
 
@@ -493,21 +543,134 @@ pre {
     grid-template-columns: 1fr;
   }
 
+  .layout {
+    display: block;
+  }
+
   .nav {
     border-bottom: 1px solid var(--line);
     border-right: 0;
     display: flex;
     gap: 0.35rem;
     overflow-x: auto;
+    padding: 0.65rem;
+    position: sticky;
+    top: 0;
+    z-index: 2;
   }
 
   .nav a {
+    font-size: 0.9rem;
     margin-bottom: 0;
+    padding: 0.65rem 0.75rem;
     white-space: nowrap;
   }
 
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.75rem;
+  }
+
+  .brand {
+    font-size: 1rem;
+  }
+
+  .userbar {
+    align-items: stretch;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .userbar span {
+    line-height: 1.25;
+  }
+
+  main {
+    padding: 0.75rem;
+  }
+
+  .page-header {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  h1 {
+    font-size: 1.55rem;
+  }
+
+  .hero-actions a {
+    min-height: 82px;
+  }
+
+  .panel,
+  .card {
+    padding: 0.85rem;
+  }
+
+  .scan-page {
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .scan-form button,
+  .scan-tools button {
+    width: 100%;
+  }
+
+  .camera-frame {
+    aspect-ratio: 3 / 4;
+  }
+
+  .book-result {
+    align-items: flex-start;
+  }
+
+  .detail .cover {
+    max-width: 180px;
+    width: 45vw;
+  }
+
+  .meta {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  .panel:not(.table-panel) {
+    overflow-x: auto;
+  }
+
+  th,
+  td {
+    padding: 0.55rem 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-panel {
+    border-left: 0;
+    border-radius: 0;
+    border-right: 0;
+  }
+
+  .userbar {
+    display: grid;
+  }
+
+  .book-result {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .cover {
+    flex-basis: 58px;
+  }
+
+  .meta {
+    grid-template-columns: 1fr;
+  }
+
+  .meta strong {
+    margin-top: 0.35rem;
   }
 }
