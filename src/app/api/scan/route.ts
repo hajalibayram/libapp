@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ScanMode, dashboardStats } from "@/lib/core";
-import { getDemoUser, runDemoScan } from "@/lib/server/demoStore";
+import { getStoreUser, runStoreScan } from "@/lib/server/store";
 
 type ScanRequest = {
   isbn?: unknown;
@@ -10,7 +10,7 @@ type ScanRequest = {
 
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => ({}))) as ScanRequest;
-  const user = getDemoUser(typeof body.userId === "string" ? body.userId : null);
+  const user = await getStoreUser(typeof body.userId === "string" ? body.userId : null);
 
   if (!user) {
     return NextResponse.json({ status: "UNAUTHORIZED" }, { status: 401 });
@@ -20,6 +20,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "INVALID_MODE" }, { status: 400 });
   }
 
-  const { result, state } = await runDemoScan(typeof body.isbn === "string" ? body.isbn : "", body.mode as ScanMode, user);
+  const { result, state } = await runStoreScan(typeof body.isbn === "string" ? body.isbn : "", body.mode as ScanMode, user);
   return NextResponse.json({ ...result, state, stats: dashboardStats(state) });
 }

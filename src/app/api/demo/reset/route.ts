@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { dashboardStats } from "@/lib/core";
-import { resetDemoState } from "@/lib/server/demoStore";
+import { resetStoreState } from "@/lib/server/store";
 
 export async function POST() {
-  const state = await resetDemoState();
+  const state = await resetStoreState();
   return NextResponse.json({ state, stats: dashboardStats(state) });
 }

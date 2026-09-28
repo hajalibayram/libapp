@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDemoBook } from "@/lib/server/demoStore";
+import { getStoreBook } from "@/lib/server/store";
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  const book = getDemoBook(decodeURIComponent(id));
+  const book = await getStoreBook(decodeURIComponent(id));
 
   if (!book) {
     return NextResponse.json({ status: "NOT_FOUND" }, { status: 404 });

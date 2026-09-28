@@ -30,9 +30,9 @@ Done:
 Not done yet:
 
 - Supabase Auth
-- PostgreSQL persistence
+- PostgreSQL persistence wiring
 - Atomic database transactions
-- Production migrations
+- Applying the Supabase migration
 - Real user management
 
 The demo intentionally contains no price fields and no shelf/location fields.
@@ -206,9 +206,9 @@ for local testing, but it is not a replacement for PostgreSQL transactions.
 
 Next implementation steps:
 
-1. Add Supabase Auth.
-2. Add PostgreSQL schema and migrations.
-3. Replace the in-process demo store with database-backed inventory and
-   transactions.
-4. Enforce roles from authenticated Supabase users.
-5. Add concurrency tests around atomic database updates.
+1. Run the Supabase setup in `docs/SUPABASE_SETUP.md`.
+2. Add Supabase Auth.
+3. Replace the temporary demo login selector with real email/password screens.
+4. Enforce roles from authenticated Supabase users instead of the temporary
+   `userId` bridge.
+5. Add Supabase integration tests around atomic database updates.
