@@ -14,8 +14,6 @@ import {
   searchBooks
 } from "@/lib/core";
 
-const sessionKey = "volunteer-bookshop-demo-user";
-
 type Route = "/" | "/scan/add" | "/scan/remove" | "/inventory" | "/activity" | "/export" | "/users" | `/books/${string}`;
 type ScanApiResponse = ScanResult & {
   state: DemoState;
@@ -30,11 +28,11 @@ export function BookshopDemo() {
   const [stock, setStock] = useState("all");
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
   const [processingScan, setProcessingScan] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setCurrentUser(loadUser());
-    void refreshState();
+    void bootstrapSession();
 
     const syncRoute = () => setRoute(parseRoute(window.location.hash));
     syncRoute();
@@ -54,14 +52,16 @@ export function BookshopDemo() {
 
   function login(user: DemoUser) {
     setCurrentUser(user);
-    localStorage.setItem(sessionKey, JSON.stringify(user));
+    void refreshState();
     navigate("/");
   }
 
   function logout() {
-    setCurrentUser(null);
-    localStorage.removeItem(sessionKey);
-    setLastResult(null);
+    void apiPost<{ status: string }>("/api/auth/logout").finally(() => {
+      setCurrentUser(null);
+      setLastResult(null);
+      navigate("/");
+    });
   }
 
   function resetDemoData() {
@@ -79,7 +79,7 @@ export function BookshopDemo() {
 
     setProcessingScan(true);
     try {
-      const response = await apiPost<ScanApiResponse>("/api/scan", { isbn: value, mode, userId: currentUser.id });
+      const response = await apiPost<ScanApiResponse>("/api/scan", { isbn: value, mode });
       setLastResult(toScanResult(response));
       acceptServerState(response.state);
     } finally {
@@ -89,7 +89,7 @@ export function BookshopDemo() {
 
   function runUndo(transactionId: string) {
     if (!state || !currentUser) return;
-    void apiPost<ScanApiResponse>(`/api/transactions/${encodeURIComponent(transactionId)}/undo`, { userId: currentUser.id }).then((response) => {
+    void apiPost<ScanApiResponse>(`/api/transactions/${encodeURIComponent(transactionId)}/undo`).then((response) => {
       setLastResult(toScanResult(response));
       acceptServerState(response.state);
     });
@@ -98,7 +98,7 @@ export function BookshopDemo() {
   async function runManualChange(book: Book, mode: ScanMode) {
     if (!state || !currentUser) return;
     const action = mode === "ADD" ? "add" : "remove";
-    const response = await apiPost<ScanApiResponse>(`/api/books/${encodeURIComponent(book.id)}/${action}`, { userId: currentUser.id });
+    const response = await apiPost<ScanApiResponse>(`/api/books/${encodeURIComponent(book.id)}/${action}`);
     setLastResult(toScanResult(response));
     acceptServerState(response.state);
   }
@@ -106,9 +106,29 @@ export function BookshopDemo() {
   function downloadCsv() {
     if (!currentUser) return;
     const link = document.createElement("a");
-    link.href = `/api/export/inventory.csv?userId=${encodeURIComponent(currentUser.id)}`;
+    link.href = "/api/export/inventory.csv";
     link.download = "bookshop-inventory-demo.csv";
     link.click();
+  }
+
+  async function refreshSession() {
+    const response = await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
+    if (!response.ok) {
+      setCurrentUser(null);
+      setAuthChecked(true);
+      return null;
+    }
+    const body = (await response.json()) as { user: DemoUser | null };
+    setCurrentUser(body.user);
+    setAuthChecked(true);
+    return body.user;
+  }
+
+  async function bootstrapSession() {
+    const user = await refreshSession();
+    if (user) {
+      await refreshState();
+    }
   }
 
   async function refreshState() {
@@ -122,6 +142,7 @@ export function BookshopDemo() {
     const response = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify(body || {})
     });
 
@@ -137,11 +158,13 @@ export function BookshopDemo() {
     return result as ScanResult;
   }
 
-  if (!state) return null;
+  if (!authChecked) return null;
 
   if (!currentUser) {
     return <Login onLogin={login} />;
   }
+
+  if (!state) return null;
 
   return (
     <div className="app-shell">
@@ -170,6 +193,7 @@ export function BookshopDemo() {
           {route === "/" ? (
             <Dashboard
               state={state}
+              canReset={currentUser.role === "ADMIN"}
               onReset={resetDemoData}
               onSearch={(nextQuery) => {
                 setQuery(nextQuery);
@@ -216,6 +240,7 @@ function Login({ onLogin }: { onLogin: (user: DemoUser) => void }) {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ email, password })
       });
 
@@ -263,7 +288,7 @@ function loginErrorMessage(status: string | undefined): string {
   return "Login failed. Check the Supabase user and profile setup.";
 }
 
-function Dashboard({ state, onReset, onSearch }: { state: DemoState; onReset: () => void; onSearch: (query: string) => void }) {
+function Dashboard({ state, canReset, onReset, onSearch }: { state: DemoState; canReset: boolean; onReset: () => void; onSearch: (query: string) => void }) {
   const stats = dashboardStats(state);
   const recent = state.transactions.slice(0, 5);
 
@@ -280,9 +305,11 @@ function Dashboard({ state, onReset, onSearch }: { state: DemoState; onReset: ()
           <h1>Volunteer Bookshop</h1>
           <p className="muted">Scan ISBN barcodes, search stock, and review recent inventory changes.</p>
         </div>
-        <button className="ghost" onClick={onReset}>
-          Reset demo data
-        </button>
+        {canReset ? (
+          <button className="ghost" onClick={onReset}>
+            Reset demo data
+          </button>
+        ) : null}
       </div>
       <div className="hero-actions">
         <a className="add-action" href="#/scan/add">
@@ -710,14 +737,6 @@ function parseRoute(hash: string): Route {
   }
   if (route.startsWith("/books/")) return route as Route;
   return "/";
-}
-
-function loadUser(): DemoUser | null {
-  try {
-    return JSON.parse(localStorage.getItem(sessionKey) || "null") as DemoUser | null;
-  } catch {
-    return null;
-  }
 }
 
 function formatDate(value: string): string {

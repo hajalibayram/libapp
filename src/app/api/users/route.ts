@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getStoreState, getStoreUser } from "@/lib/server/store";
+import { getAuthenticatedUser } from "@/lib/server/auth";
+import { getStoreState } from "@/lib/server/store";
 
 export async function GET(request: NextRequest) {
-  const user = await getStoreUser(new URL(request.url).searchParams.get("userId"));
+  const { user, applyAuthCookies } = await getAuthenticatedUser(request);
 
   if (!user) {
-    return NextResponse.json({ status: "UNAUTHORIZED" }, { status: 401 });
+    return applyAuthCookies(NextResponse.json({ status: "UNAUTHORIZED" }, { status: 401 }));
   }
 
   if (user.role !== "ADMIN") {
-    return NextResponse.json({ status: "FORBIDDEN" }, { status: 403 });
+    return applyAuthCookies(NextResponse.json({ status: "FORBIDDEN" }, { status: 403 }));
   }
 
-  return NextResponse.json({ users: (await getStoreState()).users });
+  return applyAuthCookies(NextResponse.json({ users: (await getStoreState()).users }));
 }

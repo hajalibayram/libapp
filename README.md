@@ -209,6 +209,5 @@ Next implementation steps:
 1. Run the Supabase setup in `docs/SUPABASE_SETUP.md`.
 2. Add Supabase Auth.
 3. Replace the temporary demo login selector with real email/password screens.
-4. Enforce roles from authenticated Supabase users instead of the temporary
-   `userId` bridge.
+4. Add Admin user-management actions.
 5. Add Supabase integration tests around atomic database updates.

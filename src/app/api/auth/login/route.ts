@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabasePasswordClient } from "@/lib/server/supabaseAdmin";
 import { getStoreUser } from "@/lib/server/store";
+import { createSupabaseRouteClient } from "@/lib/server/supabaseRouteClient";
 
 type LoginRequest = {
   email?: unknown;
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "MISSING_CREDENTIALS" }, { status: 400 });
   }
 
-  const supabase = createSupabasePasswordClient();
+  const { supabase, applyAuthCookies } = createSupabaseRouteClient(request);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data.user) {
@@ -29,5 +29,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "PROFILE_NOT_ACTIVE" }, { status: 403 });
   }
 
-  return NextResponse.json({ user });
+  return applyAuthCookies(NextResponse.json({ user }));
 }
