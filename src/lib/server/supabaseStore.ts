@@ -1,6 +1,6 @@
 import {
   canonicalIsbn,
-  demoUsers,
+  seedUsers,
   exportInventoryCsv,
   findBookById,
   findBookByIsbn,
@@ -10,8 +10,8 @@ import {
 import type {
   Book,
   BookMetadata,
-  DemoState,
-  DemoUser,
+  AppState,
+  AppUser,
   InventoryTransaction,
   Role,
   ScanMode,
@@ -67,7 +67,7 @@ type ProfileRow = {
   active: boolean;
 };
 
-export async function getSupabaseState(): Promise<DemoState> {
+export async function getSupabaseState(): Promise<AppState> {
   const [users, books, transactions] = await Promise.all([getSupabaseUsers(), getSupabaseBooks(), getSupabaseTransactions()]);
 
   return {
@@ -78,18 +78,18 @@ export async function getSupabaseState(): Promise<DemoState> {
   };
 }
 
-export async function getSupabaseUser(userId: string | null | undefined): Promise<DemoUser | null> {
+export async function getSupabaseUser(userId: string | null | undefined): Promise<AppUser | null> {
   if (!userId) return null;
 
   const supabase = createSupabaseAdminClient();
-  const demoUser = demoUsers.find((user) => user.id === userId);
+  const seedUser = seedUsers.find((user) => user.id === userId);
 
   let query = supabase.from("profiles").select("id,name,email,role,active").eq("active", true).limit(1);
 
   if (isUuid(userId)) {
     query = query.eq("id", userId);
-  } else if (demoUser) {
-    query = query.eq("email", demoUser.email);
+  } else if (seedUser) {
+    query = query.eq("email", seedUser.email);
   } else {
     query = query.eq("email", userId);
   }
@@ -99,29 +99,7 @@ export async function getSupabaseUser(userId: string | null | undefined): Promis
   return data ? mapProfile(data) : null;
 }
 
-export async function resetSupabaseState(): Promise<DemoState> {
-  if (process.env.ALLOW_SUPABASE_RESET !== "true") {
-    return getSupabaseState();
-  }
-
-  const supabase = createSupabaseAdminClient();
-  const deletes: Array<{ table: string; column: string }> = [
-    { table: "inventory_transactions", column: "id" },
-    { table: "inventory", column: "book_id" },
-    { table: "book_authors", column: "book_id" },
-    { table: "authors", column: "id" },
-    { table: "books", column: "id" }
-  ];
-
-  for (const item of deletes) {
-    const { error } = await supabase.from(item.table).delete().neq(item.column, "00000000-0000-0000-0000-000000000000");
-    if (error) throw error;
-  }
-
-  return getSupabaseState();
-}
-
-export async function runSupabaseScan(isbnInput: string, mode: ScanMode, user: DemoUser): Promise<{ result: ScanResult; state: DemoState }> {
+export async function runSupabaseScan(isbnInput: string, mode: ScanMode, user: AppUser): Promise<{ result: ScanResult; state: AppState }> {
   const isbn = canonicalIsbn(isbnInput);
   if (!isbn) {
     const state = await getSupabaseState();
@@ -145,7 +123,7 @@ export async function runSupabaseScan(isbnInput: string, mode: ScanMode, user: D
   return runSupabaseAdd(metadata, user);
 }
 
-export async function runSupabaseManualChange(bookId: string, mode: ScanMode, user: DemoUser): Promise<{ result: ScanResult; state: DemoState }> {
+export async function runSupabaseManualChange(bookId: string, mode: ScanMode, user: AppUser): Promise<{ result: ScanResult; state: AppState }> {
   const state = await getSupabaseState();
   const book = findBookById(state, bookId);
 
@@ -156,7 +134,7 @@ export async function runSupabaseManualChange(bookId: string, mode: ScanMode, us
   return mode === "ADD" ? runSupabaseAdd(metadataFromBook(book), user) : runSupabaseRemove(book.id, user);
 }
 
-export async function runSupabaseUndo(transactionId: string, user: DemoUser): Promise<{ result: ScanResult; state: DemoState }> {
+export async function runSupabaseUndo(transactionId: string, user: AppUser): Promise<{ result: ScanResult; state: AppState }> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.rpc("inventory_undo", {
     p_user_id: user.id,
@@ -180,7 +158,7 @@ export async function getSupabaseCsv(): Promise<string> {
   return exportInventoryCsv(await getSupabaseState());
 }
 
-async function runSupabaseAdd(metadata: BookMetadata, user: DemoUser): Promise<{ result: ScanResult; state: DemoState }> {
+async function runSupabaseAdd(metadata: BookMetadata, user: AppUser): Promise<{ result: ScanResult; state: AppState }> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.rpc("inventory_add", {
     p_user_id: user.id,
@@ -201,7 +179,7 @@ async function runSupabaseAdd(metadata: BookMetadata, user: DemoUser): Promise<{
   return resultFromRpc(data as RpcResult, "ADD");
 }
 
-async function runSupabaseRemove(bookId: string, user: DemoUser): Promise<{ result: ScanResult; state: DemoState }> {
+async function runSupabaseRemove(bookId: string, user: AppUser): Promise<{ result: ScanResult; state: AppState }> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.rpc("inventory_remove", {
     p_user_id: user.id,
@@ -212,7 +190,7 @@ async function runSupabaseRemove(bookId: string, user: DemoUser): Promise<{ resu
   return resultFromRpc(data as RpcResult, "REMOVE");
 }
 
-async function resultFromRpc(rpc: RpcResult, action: "ADD" | "REMOVE" | "UNDO"): Promise<{ result: ScanResult; state: DemoState }> {
+async function resultFromRpc(rpc: RpcResult, action: "ADD" | "REMOVE" | "UNDO"): Promise<{ result: ScanResult; state: AppState }> {
   const state = await getSupabaseState();
 
   if (rpc.status !== "SUCCESS") {
@@ -247,7 +225,7 @@ async function resultFromRpc(rpc: RpcResult, action: "ADD" | "REMOVE" | "UNDO"):
   };
 }
 
-async function getSupabaseUsers(): Promise<DemoUser[]> {
+async function getSupabaseUsers(): Promise<AppUser[]> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.from("profiles").select("id,name,email,role,active").order("name", { ascending: true });
   if (error) throw error;
@@ -342,7 +320,7 @@ function mapTransaction(row: TransactionRow): InventoryTransaction {
   };
 }
 
-function mapProfile(row: ProfileRow): DemoUser {
+function mapProfile(row: ProfileRow): AppUser {
   return {
     id: row.id,
     name: row.name,

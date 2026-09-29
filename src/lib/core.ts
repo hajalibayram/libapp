@@ -11,7 +11,7 @@ export type ResultStatus =
   | "CANNOT_UNDO"
   | "ALREADY_UNDONE";
 
-export type DemoUser = {
+export type AppUser = {
   id: string;
   name: string;
   email: string;
@@ -64,10 +64,10 @@ export type InventoryTransaction = {
   createdAt: string;
 };
 
-export type DemoState = {
+export type AppState = {
   books: Book[];
   transactions: InventoryTransaction[];
-  users: DemoUser[];
+  users: AppUser[];
   createdAt: string;
 };
 
@@ -95,9 +95,9 @@ export type ScanResult =
 
 export type PublicBook = Omit<Book, "quantity" | "createdAt" | "updatedAt">;
 
-export const demoUsers: DemoUser[] = [
-  { id: "user-volunteer", name: "Volunteer Demo", email: "volunteer@bookshop.test", role: "VOLUNTEER", active: true },
-  { id: "user-admin", name: "Admin Demo", email: "admin@bookshop.test", role: "ADMIN", active: true }
+export const seedUsers: AppUser[] = [
+  { id: "user-volunteer", name: "Volunteer User", email: "volunteer@bookshop.test", role: "VOLUNTEER", active: true },
+  { id: "user-admin", name: "Admin User", email: "admin@bookshop.test", role: "ADMIN", active: true }
 ];
 
 export const seededMetadata: Record<string, BookMetadata> = {
@@ -112,7 +112,7 @@ export const seededMetadata: Record<string, BookMetadata> = {
     language: "en",
     description: "A dystopian novel about surveillance, language, and political control.",
     coverUrl: "https://covers.openlibrary.org/b/isbn/9780141187761-M.jpg",
-    source: "demo-seed"
+    source: "seed"
   },
   "9780241197790": {
     isbn13: "9780241197790",
@@ -125,7 +125,7 @@ export const seededMetadata: Record<string, BookMetadata> = {
     language: "en",
     description: "A novel about a man arrested and prosecuted by an inaccessible authority.",
     coverUrl: "https://covers.openlibrary.org/b/isbn/9780241197790-M.jpg",
-    source: "demo-seed"
+    source: "seed"
   },
   "9780141198064": {
     isbn13: "9780141198064",
@@ -138,7 +138,7 @@ export const seededMetadata: Record<string, BookMetadata> = {
     language: "en",
     description: "A short novel about alienation, guilt, and absurdity.",
     coverUrl: "https://covers.openlibrary.org/b/isbn/9780141198064-M.jpg",
-    source: "demo-seed"
+    source: "seed"
   },
   "9780140455465": {
     isbn13: "9780140455465",
@@ -151,11 +151,11 @@ export const seededMetadata: Record<string, BookMetadata> = {
     language: "en",
     description: "A satirical novel moving between Soviet Moscow and biblical Jerusalem.",
     coverUrl: "https://covers.openlibrary.org/b/isbn/9780140455465-M.jpg",
-    source: "demo-seed"
+    source: "seed"
   }
 };
 
-export function createInitialState(): DemoState {
+export function createInitialState(): AppState {
   const now = new Date().toISOString();
   const books = [
     bookFromMetadata(seededMetadata["9780141187761"], 3, now),
@@ -166,7 +166,7 @@ export function createInitialState(): DemoState {
   return {
     books,
     transactions: [],
-    users: demoUsers,
+    users: seedUsers,
     createdAt: now
   };
 }
@@ -220,10 +220,10 @@ export function canonicalIsbn(input: string): CanonicalIsbn | null {
 }
 
 export async function scanInventory(
-  state: DemoState,
+  state: AppState,
   rawIsbn: string,
   mode: ScanMode,
-  user: DemoUser,
+  user: AppUser,
   lookupMetadata?: (scanned: string, isbn: CanonicalIsbn) => Promise<BookMetadata | null>
 ): Promise<ScanResult> {
   const normalized = normalizeIsbn(rawIsbn);
@@ -276,7 +276,7 @@ export async function scanInventory(
   return applyChange(state, book, 1, "ADD", user);
 }
 
-export function undoTransaction(state: DemoState, transactionId: string, user: DemoUser): ScanResult {
+export function undoTransaction(state: AppState, transactionId: string, user: AppUser): ScanResult {
   const original = state.transactions.find((transaction) => transaction.id === transactionId);
   if (!original || original.action === "UNDO") {
     return { status: "CANNOT_UNDO" };
@@ -293,7 +293,7 @@ export function undoTransaction(state: DemoState, transactionId: string, user: D
   return applyChange(state, book, delta, "UNDO", user, original.id);
 }
 
-export function searchBooks(state: DemoState, query = "", stock = "all"): Book[] {
+export function searchBooks(state: AppState, query = "", stock = "all"): Book[] {
   const needle = query.trim().toLowerCase();
   return state.books
     .filter((book) => {
@@ -309,7 +309,7 @@ export function searchBooks(state: DemoState, query = "", stock = "all"): Book[]
     .sort((a, b) => a.title.localeCompare(b.title));
 }
 
-export function dashboardStats(state: DemoState): { totalTitles: number; totalBooks: number; outOfStock: number } {
+export function dashboardStats(state: AppState): { totalTitles: number; totalBooks: number; outOfStock: number } {
   return {
     totalTitles: state.books.filter((book) => book.quantity > 0).length,
     totalBooks: state.books.reduce((total, book) => total + book.quantity, 0),
@@ -317,7 +317,7 @@ export function dashboardStats(state: DemoState): { totalTitles: number; totalBo
   };
 }
 
-export function exportInventoryCsv(state: DemoState): string {
+export function exportInventoryCsv(state: AppState): string {
   const columns = ["ISBN-13", "ISBN-10", "Title", "Authors", "Publisher", "Publication Date", "Language", "Quantity"];
   const rows = state.books
     .slice()
@@ -335,11 +335,11 @@ export function exportInventoryCsv(state: DemoState): string {
   return [columns, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
 }
 
-export function findBookById(state: DemoState, id: string): Book | null {
+export function findBookById(state: AppState, id: string): Book | null {
   return state.books.find((book) => book.id === id) || null;
 }
 
-export function findBookByIsbn(state: DemoState, isbnInfo: string | CanonicalIsbn): Book | null {
+export function findBookByIsbn(state: AppState, isbnInfo: string | CanonicalIsbn): Book | null {
   const normalized = typeof isbnInfo === "string" ? canonicalIsbn(isbnInfo) : isbnInfo;
   if (!normalized) return null;
   return (
@@ -355,11 +355,11 @@ export function findBookByIsbn(state: DemoState, isbnInfo: string | CanonicalIsb
 }
 
 function applyChange(
-  state: DemoState,
+  state: AppState,
   book: Book,
   delta: number,
   action: TransactionAction,
-  user: DemoUser,
+  user: AppUser,
   reversesTransactionId: string | null = null
 ): ScanResult {
   const before = book.quantity;

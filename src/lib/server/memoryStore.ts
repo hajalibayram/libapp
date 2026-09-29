@@ -1,41 +1,41 @@
 import {
   createInitialState,
-  demoUsers,
+  seedUsers,
   exportInventoryCsv,
   findBookById,
   scanInventory,
   searchBooks,
   undoTransaction
 } from "../core.ts";
-import type { DemoState, DemoUser, ScanMode, ScanResult } from "../core.ts";
+import type { AppState, AppUser, ScanMode, ScanResult } from "../core.ts";
 import { lookupBookMetadata } from "../metadata/service.ts";
 
-type GlobalDemoStore = {
-  state?: DemoState;
+type GlobalMemoryStore = {
+  state?: AppState;
   queue?: Promise<unknown>;
 };
 
 const globalStore = globalThis as typeof globalThis & {
-  __volunteerBookshopDemoStore?: GlobalDemoStore;
+  __volunteerBookshopAppStore?: GlobalMemoryStore;
 };
 
-function store(): GlobalDemoStore {
-  globalStore.__volunteerBookshopDemoStore ||= {};
-  globalStore.__volunteerBookshopDemoStore.state ||= createInitialState();
-  globalStore.__volunteerBookshopDemoStore.queue ||= Promise.resolve();
-  return globalStore.__volunteerBookshopDemoStore;
+function store(): GlobalMemoryStore {
+  globalStore.__volunteerBookshopAppStore ||= {};
+  globalStore.__volunteerBookshopAppStore.state ||= createInitialState();
+  globalStore.__volunteerBookshopAppStore.queue ||= Promise.resolve();
+  return globalStore.__volunteerBookshopAppStore;
 }
 
-export function getDemoState(): DemoState {
+export function getMemoryState(): AppState {
   return cloneState(store().state || createInitialState());
 }
 
-export function getDemoUser(userId: string | null | undefined): DemoUser | null {
+export function getMemoryUser(userId: string | null | undefined): AppUser | null {
   if (!userId) return null;
-  return demoUsers.find((user) => user.id === userId && user.active) || null;
+  return seedUsers.find((user) => user.id === userId && user.active) || null;
 }
 
-export async function resetDemoState(): Promise<DemoState> {
+export async function resetMemoryState(): Promise<AppState> {
   return withMutation(async (state) => {
     const nextState = createInitialState();
     store().state = nextState;
@@ -43,14 +43,14 @@ export async function resetDemoState(): Promise<DemoState> {
   });
 }
 
-export async function runDemoScan(isbn: string, mode: ScanMode, user: DemoUser): Promise<{ result: ScanResult; state: DemoState }> {
+export async function runMemoryScan(isbn: string, mode: ScanMode, user: AppUser): Promise<{ result: ScanResult; state: AppState }> {
   return withMutation(async (state) => {
     const result = await scanInventory(state, isbn, mode, user, lookupBookMetadata);
     return { result, state: cloneState(state) };
   });
 }
 
-export async function runDemoManualChange(bookId: string, mode: ScanMode, user: DemoUser): Promise<{ result: ScanResult; state: DemoState }> {
+export async function runMemoryManualChange(bookId: string, mode: ScanMode, user: AppUser): Promise<{ result: ScanResult; state: AppState }> {
   return withMutation(async (state) => {
     const book = findBookById(state, bookId);
     if (!book) {
@@ -61,26 +61,26 @@ export async function runDemoManualChange(bookId: string, mode: ScanMode, user: 
   });
 }
 
-export async function runDemoUndo(transactionId: string, user: DemoUser): Promise<{ result: ScanResult; state: DemoState }> {
+export async function runMemoryUndo(transactionId: string, user: AppUser): Promise<{ result: ScanResult; state: AppState }> {
   return withMutation(async (state) => {
     const result = undoTransaction(state, transactionId, user);
     return { result, state: cloneState(state) };
   });
 }
 
-export function getDemoBooks(query = "", stock = "all") {
-  return searchBooks(getDemoState(), query, stock);
+export function getMemoryBooks(query = "", stock = "all") {
+  return searchBooks(getMemoryState(), query, stock);
 }
 
-export function getDemoBook(bookId: string) {
-  return findBookById(getDemoState(), bookId);
+export function getMemoryBook(bookId: string) {
+  return findBookById(getMemoryState(), bookId);
 }
 
-export function getDemoCsv(): string {
-  return exportInventoryCsv(getDemoState());
+export function getMemoryCsv(): string {
+  return exportInventoryCsv(getMemoryState());
 }
 
-async function withMutation<T>(callback: (state: DemoState) => Promise<T> | T): Promise<T> {
+async function withMutation<T>(callback: (state: AppState) => Promise<T> | T): Promise<T> {
   const current = store();
   const previous = current.queue || Promise.resolve();
 
@@ -99,6 +99,6 @@ async function withMutation<T>(callback: (state: DemoState) => Promise<T> | T): 
   }
 }
 
-function cloneState(state: DemoState): DemoState {
-  return JSON.parse(JSON.stringify(state)) as DemoState;
+function cloneState(state: AppState): AppState {
+  return JSON.parse(JSON.stringify(state)) as AppState;
 }

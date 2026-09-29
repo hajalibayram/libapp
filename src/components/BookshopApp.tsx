@@ -3,8 +3,8 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Book,
-  DemoState,
-  DemoUser,
+  AppState,
+  AppUser,
   InventoryTransaction,
   ScanMode,
   ScanResult,
@@ -16,7 +16,7 @@ import {
 
 type Route = "/" | "/scan/add" | "/scan/remove" | "/inventory" | "/activity" | "/export" | "/users" | `/books/${string}`;
 type ScanApiResponse = ScanResult & {
-  state: DemoState;
+  state: AppState;
   stats?: ReturnType<typeof dashboardStats>;
 };
 type BarcodeDetectionResult = {
@@ -34,9 +34,9 @@ type BarcodeDetectorWindow = Window &
     BarcodeDetector?: BarcodeDetectorConstructor;
   };
 
-export function BookshopDemo() {
-  const [state, setState] = useState<DemoState | null>(null);
-  const [currentUser, setCurrentUser] = useState<DemoUser | null>(null);
+export function BookshopApp() {
+  const [state, setState] = useState<AppState | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [route, setRoute] = useState<Route>("/");
   const [query, setQuery] = useState("");
   const [stock, setStock] = useState("all");
@@ -60,11 +60,11 @@ export function BookshopDemo() {
     }
   }, [route, lastResult, processingScan]);
 
-  function acceptServerState(nextState: DemoState) {
+  function acceptServerState(nextState: AppState) {
     setState(nextState);
   }
 
-  function login(user: DemoUser) {
+  function login(user: AppUser) {
     setCurrentUser(user);
     void refreshState();
     navigate("/");
@@ -75,13 +75,6 @@ export function BookshopDemo() {
       setCurrentUser(null);
       setLastResult(null);
       navigate("/");
-    });
-  }
-
-  function resetDemoData() {
-    void apiPost<{ state: DemoState }>("/api/demo/reset").then((response) => {
-      acceptServerState(response.state);
-      setLastResult(null);
     });
   }
 
@@ -121,7 +114,7 @@ export function BookshopDemo() {
     if (!currentUser) return;
     const link = document.createElement("a");
     link.href = "/api/export/inventory.csv";
-    link.download = "bookshop-inventory-demo.csv";
+    link.download = "bookshop-inventory.csv";
     link.click();
   }
 
@@ -132,7 +125,7 @@ export function BookshopDemo() {
       setAuthChecked(true);
       return null;
     }
-    const body = (await response.json()) as { user: DemoUser | null };
+    const body = (await response.json()) as { user: AppUser | null };
     setCurrentUser(body.user);
     setAuthChecked(true);
     return body.user;
@@ -146,9 +139,9 @@ export function BookshopDemo() {
   }
 
   async function refreshState() {
-    const response = await fetch("/api/demo/state", { cache: "no-store" });
-    if (!response.ok) throw new Error("Failed to load demo state");
-    const body = (await response.json()) as { state: DemoState };
+    const response = await fetch("/api/app/state", { cache: "no-store" });
+    if (!response.ok) throw new Error("Failed to load application state");
+    const body = (await response.json()) as { state: AppState };
     acceptServerState(body.state);
   }
 
@@ -207,8 +200,6 @@ export function BookshopDemo() {
           {route === "/" ? (
             <Dashboard
               state={state}
-              canReset={currentUser.role === "ADMIN"}
-              onReset={resetDemoData}
               onSearch={(nextQuery) => {
                 setQuery(nextQuery);
                 navigate("/inventory");
@@ -237,7 +228,7 @@ export function BookshopDemo() {
   );
 }
 
-function Login({ onLogin }: { onLogin: (user: DemoUser) => void }) {
+function Login({ onLogin }: { onLogin: (user: AppUser) => void }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -258,7 +249,7 @@ function Login({ onLogin }: { onLogin: (user: DemoUser) => void }) {
         body: JSON.stringify({ email, password })
       });
 
-      const body = (await response.json().catch(() => ({}))) as { user?: DemoUser; status?: string };
+      const body = (await response.json().catch(() => ({}))) as { user?: AppUser; status?: string };
 
       if (!response.ok || !body.user) {
         setError(loginErrorMessage(body.status));
@@ -302,7 +293,7 @@ function loginErrorMessage(status: string | undefined): string {
   return "Login failed. Check the Supabase user and profile setup.";
 }
 
-function Dashboard({ state, canReset, onReset, onSearch }: { state: DemoState; canReset: boolean; onReset: () => void; onSearch: (query: string) => void }) {
+function Dashboard({ state, onSearch }: { state: AppState; onSearch: (query: string) => void }) {
   const stats = dashboardStats(state);
   const recent = state.transactions.slice(0, 5);
 
@@ -319,11 +310,6 @@ function Dashboard({ state, canReset, onReset, onSearch }: { state: DemoState; c
           <h1>Volunteer Bookshop</h1>
           <p className="muted">Scan ISBN barcodes, search stock, and review recent inventory changes.</p>
         </div>
-        {canReset ? (
-          <button className="ghost" onClick={onReset}>
-            Reset demo data
-          </button>
-        ) : null}
       </div>
       <div className="hero-actions">
         <a className="add-action" href="#/scan/add">
@@ -606,7 +592,7 @@ function InventoryPage({
   onQuery,
   onStock
 }: {
-  state: DemoState;
+  state: AppState;
   query: string;
   stock: string;
   onQuery: (query: string) => void;
@@ -640,7 +626,7 @@ function BookDetailPage({
   bookId,
   onManualChange
 }: {
-  state: DemoState;
+  state: AppState;
   bookId: string;
   onManualChange: (book: Book, mode: ScanMode) => Promise<void>;
 }) {
@@ -702,7 +688,7 @@ function BookDetailPage({
   );
 }
 
-function ActivityPage({ state }: { state: DemoState }) {
+function ActivityPage({ state }: { state: AppState }) {
   return (
     <section className="page">
       <div className="page-header">
@@ -718,7 +704,7 @@ function ActivityPage({ state }: { state: DemoState }) {
   );
 }
 
-function ExportPage({ state, onDownload }: { state: DemoState; onDownload: () => void }) {
+function ExportPage({ state, onDownload }: { state: AppState; onDownload: () => void }) {
   return (
     <section className="page">
       <div className="page-header">
@@ -736,13 +722,13 @@ function ExportPage({ state, onDownload }: { state: DemoState; onDownload: () =>
   );
 }
 
-function UsersPage({ state }: { state: DemoState }) {
+function UsersPage({ state }: { state: AppState }) {
   return (
     <section className="page">
       <div className="page-header">
         <div>
           <h1>Users</h1>
-          <p className="muted">Demo accounts are fixed locally. Supabase Auth would replace this for the real MVP.</p>
+          <p className="muted">User access is managed through Supabase Auth and profiles.</p>
         </div>
       </div>
       <section className="panel">
@@ -775,7 +761,7 @@ function Forbidden() {
   return (
     <section className="page panel">
       <h1>Admin only</h1>
-      <p className="muted">Log in as Admin Demo to use this page.</p>
+      <p className="muted">Log in with an admin account to use this page.</p>
     </section>
   );
 }
@@ -815,7 +801,7 @@ function BookTable({ books }: { books: Book[] }) {
   );
 }
 
-function ActivityTable({ state, transactions }: { state: DemoState; transactions: InventoryTransaction[] }) {
+function ActivityTable({ state, transactions }: { state: AppState; transactions: InventoryTransaction[] }) {
   return (
     <table>
       <thead>
