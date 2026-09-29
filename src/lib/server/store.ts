@@ -1,63 +1,57 @@
 import {
-  getDemoBook,
-  getDemoBooks,
-  getDemoCsv,
-  getDemoState,
-  getDemoUser,
-  resetDemoState,
-  runDemoManualChange,
-  runDemoScan,
-  runDemoUndo
-} from "./demoStore.ts";
+  getMemoryBook,
+  getMemoryBooks,
+  getMemoryCsv,
+  getMemoryState,
+  getMemoryUser,
+  runMemoryManualChange,
+  runMemoryScan,
+  runMemoryUndo
+} from "./memoryStore.ts";
 import {
   getSupabaseBook,
   getSupabaseCsv,
   getSupabaseFilteredBooks,
   getSupabaseState,
   getSupabaseUser,
-  resetSupabaseState,
   runSupabaseManualChange,
   runSupabaseScan,
   runSupabaseUndo
 } from "./supabaseStore.ts";
-import type { DemoUser, ScanMode } from "../core.ts";
+import type { AppUser, ScanMode } from "../core.ts";
 
 export function usingSupabaseStore(): boolean {
   return process.env.BOOKSHOP_STORAGE === "supabase";
 }
 
 export async function getStoreState() {
-  return usingSupabaseStore() ? getSupabaseState() : getDemoState();
+  return usingSupabaseStore() ? getSupabaseState() : getMemoryState();
 }
 
-export async function getStoreUser(userId: string | null | undefined): Promise<DemoUser | null> {
-  return usingSupabaseStore() ? getSupabaseUser(userId) : getDemoUser(userId);
+export async function getStoreUser(userId: string | null | undefined): Promise<AppUser | null> {
+  return usingSupabaseStore() ? getSupabaseUser(userId) : getMemoryUser(userId);
 }
 
-export async function resetStoreState() {
-  return usingSupabaseStore() ? resetSupabaseState() : resetDemoState();
+export async function runStoreScan(isbn: string, mode: ScanMode, user: AppUser) {
+  return usingSupabaseStore() ? runSupabaseScan(isbn, mode, user) : runMemoryScan(isbn, mode, user);
 }
 
-export async function runStoreScan(isbn: string, mode: ScanMode, user: DemoUser) {
-  return usingSupabaseStore() ? runSupabaseScan(isbn, mode, user) : runDemoScan(isbn, mode, user);
+export async function runStoreManualChange(bookId: string, mode: ScanMode, user: AppUser) {
+  return usingSupabaseStore() ? runSupabaseManualChange(bookId, mode, user) : runMemoryManualChange(bookId, mode, user);
 }
 
-export async function runStoreManualChange(bookId: string, mode: ScanMode, user: DemoUser) {
-  return usingSupabaseStore() ? runSupabaseManualChange(bookId, mode, user) : runDemoManualChange(bookId, mode, user);
-}
-
-export async function runStoreUndo(transactionId: string, user: DemoUser) {
-  return usingSupabaseStore() ? runSupabaseUndo(transactionId, user) : runDemoUndo(transactionId, user);
+export async function runStoreUndo(transactionId: string, user: AppUser) {
+  return usingSupabaseStore() ? runSupabaseUndo(transactionId, user) : runMemoryUndo(transactionId, user);
 }
 
 export async function getStoreBooks(query = "", stock = "all") {
-  return usingSupabaseStore() ? getSupabaseFilteredBooks(query, stock) : getDemoBooks(query, stock);
+  return usingSupabaseStore() ? getSupabaseFilteredBooks(query, stock) : getMemoryBooks(query, stock);
 }
 
 export async function getStoreBook(bookId: string) {
-  return usingSupabaseStore() ? getSupabaseBook(bookId) : getDemoBook(bookId);
+  return usingSupabaseStore() ? getSupabaseBook(bookId) : getMemoryBook(bookId);
 }
 
 export async function getStoreCsv() {
-  return usingSupabaseStore() ? getSupabaseCsv() : getDemoCsv();
+  return usingSupabaseStore() ? getSupabaseCsv() : getMemoryCsv();
 }

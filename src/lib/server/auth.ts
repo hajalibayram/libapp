@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DemoUser } from "../core.ts";
+import { AppUser } from "../core.ts";
 import { getStoreUser } from "./store.ts";
 import { createSupabaseRouteClient } from "./supabaseRouteClient.ts";
 
 export async function getAuthenticatedUser(request: NextRequest): Promise<{
-  user: DemoUser | null;
+  user: AppUser | null;
   applyAuthCookies: (response: NextResponse) => NextResponse;
 }> {
   const { supabase, applyAuthCookies } = createSupabaseRouteClient(request);

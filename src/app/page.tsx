@@ -1,5 +1,5 @@
-import { BookshopDemo } from "@/components/BookshopDemo";
+import { BookshopApp } from "@/components/BookshopApp";
 
 export default function Home() {
-  return <BookshopDemo />;
+  return <BookshopApp />;
 }

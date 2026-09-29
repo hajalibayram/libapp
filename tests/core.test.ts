@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {
   canonicalIsbn,
   createInitialState,
-  demoUsers,
+  seedUsers,
   exportInventoryCsv,
   findBookByIsbn,
   isValidIsbn10,
@@ -13,7 +13,7 @@ import {
   undoTransaction
 } from "../src/lib/core.ts";
 
-const user = demoUsers[0];
+const user = seedUsers[0];
 
 await test("normalizes spaces and hyphens", () => {
   assert.equal(normalizeIsbn(" 978-0-14-118776-1 "), "9780141187761");

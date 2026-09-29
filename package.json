@@ -1,7 +1,7 @@
 {
   "name": "volunteer-bookshop-inventory",
   "version": "0.2.0",
-  "description": "Next.js + TypeScript local demo for the Volunteer Bookshop Inventory MVP.",
+  "description": "Next.js + TypeScript application for volunteer bookshop inventory.",
   "private": true,
   "type": "module",
   "license": "UNLICENSED",

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { findBookByIsbn } from "../src/lib/core.ts";
-import { getDemoCsv, getDemoState, getDemoUser, resetDemoState, runDemoScan, runDemoUndo } from "../src/lib/server/demoStore.ts";
+import { getMemoryCsv, getMemoryState, getMemoryUser, resetMemoryState, runMemoryScan, runMemoryUndo } from "../src/lib/server/memoryStore.ts";
 
-const volunteer = getDemoUser("user-volunteer");
+const volunteer = getMemoryUser("user-volunteer");
 assert.ok(volunteer);
 
-await test("server store scan mutates shared demo state", async () => {
-  await resetDemoState();
+await test("server store scan mutates shared application state", async () => {
+  await resetMemoryState();
 
-  const { result, state } = await runDemoScan("9780141187761", "ADD", volunteer);
+  const { result, state } = await runMemoryScan("9780141187761", "ADD", volunteer);
   const book = findBookByIsbn(state, "9780141187761");
 
   assert.equal(result.status, "SUCCESS");
@@ -17,12 +17,12 @@ await test("server store scan mutates shared demo state", async () => {
 });
 
 await test("server store undo creates reverse transaction", async () => {
-  await resetDemoState();
+  await resetMemoryState();
 
-  const scan = await runDemoScan("9780141187761", "ADD", volunteer);
+  const scan = await runMemoryScan("9780141187761", "ADD", volunteer);
   assert.equal(scan.result.status, "SUCCESS");
 
-  const undo = await runDemoUndo(scan.result.transactionId, volunteer);
+  const undo = await runMemoryUndo(scan.result.transactionId, volunteer);
   const book = findBookByIsbn(undo.state, "9780141187761");
 
   assert.equal(undo.result.status, "SUCCESS");
@@ -31,11 +31,11 @@ await test("server store undo creates reverse transaction", async () => {
 });
 
 await test("server store serializes concurrent scans", async () => {
-  await resetDemoState();
+  await resetMemoryState();
 
-  await Promise.all(Array.from({ length: 5 }, () => runDemoScan("9780141187761", "ADD", volunteer)));
+  await Promise.all(Array.from({ length: 5 }, () => runMemoryScan("9780141187761", "ADD", volunteer)));
 
-  const state = getDemoState();
+  const state = getMemoryState();
   const book = findBookByIsbn(state, "9780141187761");
 
   assert.equal(book?.quantity, 8);
@@ -43,9 +43,9 @@ await test("server store serializes concurrent scans", async () => {
 });
 
 await test("server CSV export preserves MVP columns", async () => {
-  await resetDemoState();
+  await resetMemoryState();
 
-  const csv = getDemoCsv();
+  const csv = getMemoryCsv();
 
   assert.match(csv, /ISBN-13,ISBN-10,Title,Authors,Publisher,Publication Date,Language,Quantity/);
   assert.doesNotMatch(csv.toLowerCase(), /price|shelf|location/);

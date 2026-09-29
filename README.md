@@ -1,11 +1,7 @@
-# Volunteer Bookshop Inventory Demo
+# Volunteer Bookshop Inventory
 
-Next.js + TypeScript local demo for the Volunteer Bookshop Inventory MVP in
-`volunteer_bookshop_mvp_spec.md`.
-
-This is still a local demo, not the final Supabase/PostgreSQL implementation. It
-is intended to validate the volunteer scanning workflow before wiring real auth,
-database transactions, and server-side metadata providers.
+Next.js + TypeScript application for barcode-based volunteer bookshop inventory.
+It uses Supabase Auth and PostgreSQL for authenticated production storage.
 
 ## Current Status
 
@@ -14,8 +10,11 @@ Done:
 - Next.js App Router
 - TypeScript
 - Supabase email/password login
+- Supabase/PostgreSQL persistence
+- Atomic inventory updates through database RPC functions
 - Add Books and Remove Books scan screens
 - Scanner-friendly ISBN input with automatic focus
+- Camera barcode scanning where supported by the browser
 - ISBN normalization and checksum validation
 - Quantity tracking per ISBN
 - Inventory search by title, author, or ISBN
@@ -23,25 +22,18 @@ Done:
 - Recent activity/audit log
 - Undo via reversing transaction
 - Admin-only CSV export
-- API-backed demo storage through Next.js route handlers
+- API-backed storage through Next.js route handlers
 - Server-side Open Library and Google Books metadata lookup
 - Core inventory rule tests
 
-Not done yet:
-
-- Supabase Auth
-- PostgreSQL persistence wiring
-- Atomic database transactions
-- Applying the Supabase migration
-- Real user management
-
-The demo intentionally contains no price fields and no shelf/location fields.
+The app intentionally contains no price fields and no shelf/location fields.
 
 ## Requirements
 
 - Node.js
 - npm
 - A modern browser
+- A Supabase project with the migrations in `supabase/migrations` applied
 
 ## Install
 
@@ -76,12 +68,11 @@ http://localhost:3001
 ## Login
 
 Create users in Supabase Authentication, then log in with their email/password.
-For the setup guide, use:
+The profile trigger creates matching application profiles. To grant admin access,
+set the user's profile role to `ADMIN`.
 
-```text
-admin@bookshop.test
-volunteer@bookshop.test
-```
+Local development and production deployments should set the Supabase environment
+variables shown in `.env.example`.
 
 ## Scanner Test Flow
 
@@ -117,12 +108,6 @@ Suggested checks:
 5. Use Undo after a successful add/remove.
 6. Search inventory by title, author, and ISBN.
 7. Log in as Admin and download the CSV export.
-
-## Reset Demo Data
-
-On the Dashboard, use `Reset demo data`.
-
-This clears local demo inventory/activity data and restores the seeded books.
 
 ## Verify
 
@@ -164,7 +149,7 @@ src/
     page.tsx
     globals.css
   components/
-    BookshopDemo.tsx
+    BookshopApp.tsx
   lib/
     core.ts
 tests/
@@ -183,11 +168,12 @@ For newly scanned ISBNs, the Next.js API attempts lookup from:
 The provider logic is isolated under `src/lib/metadata/`. Seeded ISBNs work
 without network lookup.
 
-## Demo API Routes
+## API Routes
 
-The UI now calls Next.js route handlers for inventory mutations:
+The UI calls Next.js route handlers for inventory reads and mutations:
 
 ```text
+GET  /api/app/state
 POST /api/scan
 GET  /api/books
 GET  /api/books/:id
@@ -199,15 +185,13 @@ GET  /api/export/inventory.csv
 GET  /api/users
 ```
 
-The current storage adapter is an in-process demo store. It serializes mutations
-for local testing, but it is not a replacement for PostgreSQL transactions.
+Set `BOOKSHOP_STORAGE=supabase` for Supabase-backed storage. The memory storage
+adapter is retained for isolated tests and should not be used for production data.
 
-## Path Toward The Full MVP
+## Production Notes
 
-Next implementation steps:
-
-1. Run the Supabase setup in `docs/SUPABASE_SETUP.md`.
-2. Add Supabase Auth.
-3. Replace the temporary demo login selector with real email/password screens.
-4. Add Admin user-management actions.
-5. Add Supabase integration tests around atomic database updates.
+1. Apply all SQL files in `supabase/migrations` to the target Supabase project.
+2. Set `BOOKSHOP_STORAGE=supabase`.
+3. Set Supabase public and service-role environment variables in the hosting platform.
+4. Keep service-role keys server-side only.
+5. Run `npm run check` before deployment.

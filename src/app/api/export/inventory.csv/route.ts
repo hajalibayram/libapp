@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   return applyAuthCookies(new NextResponse(await getStoreCsv(), {
     headers: {
       "content-type": "text/csv; charset=utf-8",
-      "content-disposition": 'attachment; filename="bookshop-inventory-demo.csv"'
+      "content-disposition": 'attachment; filename="bookshop-inventory.csv"'
     }
   }));
 }
