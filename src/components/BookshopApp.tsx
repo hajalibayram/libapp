@@ -378,7 +378,7 @@ function ScanPage({
         <span className={`qty ${isAdd ? "in" : "out"}`}>{mode}</span>
       </div>
       <form className="scan-form" autoComplete="off" onSubmit={handleSubmit}>
-        <input ref={inputRef} name="isbn" inputMode="numeric" placeholder="Scan ISBN barcode" disabled={processingScan} />
+        <input ref={inputRef} name="isbn" inputMode="search" placeholder="Scan or enter ISBN" disabled={processingScan} />
         <button type="submit" disabled={processingScan}>
           {processingScan ? "Processing" : "Submit"}
         </button>

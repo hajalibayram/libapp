@@ -219,6 +219,10 @@ export function canonicalIsbn(input: string): CanonicalIsbn | null {
   return { scanned: isbn, isbn10: null, isbn13: isbn };
 }
 
+export function isValidScanIsbnInput(input: string): boolean {
+  return Boolean(canonicalIsbn(input));
+}
+
 export async function scanInventory(
   state: AppState,
   rawIsbn: string,
@@ -226,8 +230,7 @@ export async function scanInventory(
   user: AppUser,
   lookupMetadata?: (scanned: string, isbn: CanonicalIsbn) => Promise<BookMetadata | null>
 ): Promise<ScanResult> {
-  const normalized = normalizeIsbn(rawIsbn);
-  const isbn = canonicalIsbn(normalized);
+  const isbn = isValidScanIsbnInput(rawIsbn) ? canonicalIsbn(rawIsbn) : null;
 
   if (!isbn || !["ADD", "REMOVE"].includes(mode)) {
     return { status: "INVALID_ISBN" };
@@ -295,16 +298,26 @@ export function undoTransaction(state: AppState, transactionId: string, user: Ap
 
 export function searchBooks(state: AppState, query = "", stock = "all"): Book[] {
   const needle = query.trim().toLowerCase();
+  const canonicalQuery = canonicalIsbn(query);
+  const isbnNeedles = Array.from(
+    new Set([normalizeIsbn(query), canonicalQuery?.scanned, canonicalQuery?.isbn10, canonicalQuery?.isbn13].filter((value): value is string => Boolean(value)))
+  ).map((value) => value.toLowerCase());
   return state.books
     .filter((book) => {
       if (stock === "in" && book.quantity <= 0) return false;
       if (stock === "out" && book.quantity !== 0) return false;
       if (!needle) return true;
-      return [book.title, book.subtitle, book.isbn13, book.isbn10, book.publisher, ...book.authors]
+      const textHaystack = [book.title, book.subtitle, book.isbn13, book.isbn10, book.publisher, ...book.authors]
         .filter(Boolean)
         .join(" ")
-        .toLowerCase()
-        .includes(needle);
+        .toLowerCase();
+      const isbnHaystack = [book.isbn13, book.isbn10]
+        .filter(Boolean)
+        .map((value) => normalizeIsbn(value || ""))
+        .join(" ")
+        .toLowerCase();
+
+      return textHaystack.includes(needle) || isbnNeedles.some((isbnNeedle) => isbnHaystack.includes(isbnNeedle));
     })
     .sort((a, b) => a.title.localeCompare(b.title));
 }
