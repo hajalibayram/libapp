@@ -229,3 +229,14 @@ check the user's application profile role.
 3. Set Supabase public and service-role environment variables in the hosting platform.
 4. Keep service-role keys server-side only.
 5. Run `npm run check` before deployment.
+
+## Support
+
+For questions, issues, or collaboration:
+
+- GitHub: [hajalibayram](https://github.com/hajalibayram)
+- LinkedIn: [hajalibayram](https://www.linkedin.com/in/hajalibayram)
+
+## License
+
+This project is open source under the [MIT License](LICENSE).

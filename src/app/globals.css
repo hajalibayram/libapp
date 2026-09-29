@@ -528,6 +528,34 @@ tr.clickable:hover {
   padding: 0.8rem;
 }
 
+.support-panel {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 560px;
+}
+
+.support-panel a {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  display: grid;
+  font-weight: 800;
+  gap: 0.25rem;
+  min-height: 62px;
+  padding: 0.8rem;
+  text-decoration: none;
+}
+
+.support-panel a:hover {
+  background: #f7f8f5;
+}
+
+.support-panel span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
 pre {
   overflow-x: auto;
   white-space: pre-wrap;

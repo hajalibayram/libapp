@@ -2,9 +2,9 @@
   "name": "volunteer-bookshop-inventory",
   "version": "0.2.0",
   "description": "Next.js + TypeScript application for volunteer bookshop inventory.",
-  "private": true,
+  "private": false,
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "packageManager": "npm@10.9.2",
   "engines": {
     "node": ">=22.6.0",
