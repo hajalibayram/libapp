@@ -74,6 +74,29 @@ set the user's profile role to `ADMIN`.
 Local development and production deployments should set the Supabase environment
 variables shown in `.env.example`.
 
+## Configuration
+
+Production and normal local development should use Supabase-backed storage:
+
+```text
+BOOKSHOP_STORAGE=supabase
+```
+
+Required Supabase variables:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+The equivalent newer Supabase variable names in `.env.example` are also
+supported. Keep service-role credentials server-side only.
+
+`src/lib/server/memoryStore.ts` is retained for isolated tests and temporary
+local fallback only. It stores data in process memory, resets when the server
+restarts, and must not be used for production inventory.
+
 ## Scanner Test Flow
 
 Before using the app with a physical scanner:
@@ -152,8 +175,18 @@ src/
     BookshopApp.tsx
   lib/
     core.ts
+    metadata/
+      googleBooks.ts
+      openLibrary.ts
+      service.ts
+    server/
+      auth.ts
+      memoryStore.ts
+      store.ts
+      supabaseStore.ts
 tests/
   core.test.ts
+  server-store.test.ts
 ```
 
 ## Metadata Lookup
@@ -185,8 +218,8 @@ GET  /api/export/inventory.csv
 GET  /api/users
 ```
 
-Set `BOOKSHOP_STORAGE=supabase` for Supabase-backed storage. The memory storage
-adapter is retained for isolated tests and should not be used for production data.
+All routes require an authenticated Supabase session. Admin-only routes also
+check the user's application profile role.
 
 ## Production Notes
 
