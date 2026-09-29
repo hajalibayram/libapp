@@ -5,6 +5,7 @@ import {
   seedUsers,
   exportInventoryCsv,
   findBookByIsbn,
+  isValidScanIsbnInput,
   isValidIsbn10,
   isValidIsbn13,
   normalizeIsbn,
@@ -28,6 +29,21 @@ await test("validates ISBN-10 and ISBN-13 checksums", () => {
 
 await test("rejects unsupported retail barcode", () => {
   assert.equal(canonicalIsbn("1234567890123"), null);
+});
+
+await test("scan input accepts valid ISBN formats", async () => {
+  assert.equal(isValidScanIsbnInput("9780141187761"), true);
+  assert.equal(isValidScanIsbnInput("978-0-14-118776-1"), true);
+  assert.equal(isValidScanIsbnInput("014118776X"), true);
+  assert.equal(isValidScanIsbnInput("0-14-118776-X"), true);
+  assert.equal(isValidScanIsbnInput("978014118776X"), false);
+  assert.equal(isValidScanIsbnInput("1234567890123"), false);
+
+  const state = createInitialState();
+
+  assert.equal((await scanInventory(state, "978-0-14-118776-1", "ADD", user)).status, "SUCCESS");
+  assert.equal((await scanInventory(state, "0-14-118776-X", "REMOVE", user)).status, "SUCCESS");
+  assert.equal((await scanInventory(state, "978014118776X", "ADD", user)).status, "INVALID_ISBN");
 });
 
 await test("existing ISBN add increments exactly once and creates transaction", async () => {
@@ -149,6 +165,10 @@ await test("search matches title author and ISBN", () => {
   assert.equal(searchBooks(state, "1984").length, 1);
   assert.equal(searchBooks(state, "Kafka").length, 1);
   assert.equal(searchBooks(state, "9780141198064").length, 1);
+  assert.equal(searchBooks(state, "978-0-14-119806-4").length, 1);
+  assert.equal(searchBooks(state, "978 014 1198064").length, 1);
+  assert.equal(searchBooks(state, "0141198060").length, 1);
+  assert.equal(searchBooks(state, "0-14-119806-0").length, 1);
 });
 
 await test("CSV export omits price and location fields", () => {
