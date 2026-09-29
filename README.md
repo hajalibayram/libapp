@@ -95,7 +95,8 @@ supported. Keep service-role credentials server-side only.
 
 `src/lib/server/memoryStore.ts` is retained for isolated tests and temporary
 local fallback only. It stores data in process memory, resets when the server
-restarts, and must not be used for production inventory.
+restarts, and must not be used for production inventory. The application rejects
+`BOOKSHOP_STORAGE=memory` when `NODE_ENV=production`.
 
 ## Scanner Test Flow
 

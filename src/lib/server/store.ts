@@ -20,8 +20,26 @@ import {
 } from "./supabaseStore.ts";
 import type { AppUser, ScanMode } from "../core.ts";
 
+type StorageBackend = "supabase" | "memory";
+
+function selectedStorageBackend(): StorageBackend {
+  const value = process.env.BOOKSHOP_STORAGE || "supabase";
+
+  if (value === "supabase") return "supabase";
+
+  if (value === "memory" && process.env.NODE_ENV !== "production") {
+    return "memory";
+  }
+
+  if (value === "memory") {
+    throw new Error("BOOKSHOP_STORAGE=memory is not allowed in production");
+  }
+
+  throw new Error(`Invalid BOOKSHOP_STORAGE value: ${value}`);
+}
+
 export function usingSupabaseStore(): boolean {
-  return process.env.BOOKSHOP_STORAGE === "supabase";
+  return selectedStorageBackend() === "supabase";
 }
 
 export async function getStoreState() {
