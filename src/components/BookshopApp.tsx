@@ -14,7 +14,7 @@ import {
   searchBooks
 } from "@/lib/core";
 
-type Route = "/" | "/scan/add" | "/scan/remove" | "/inventory" | "/activity" | "/export" | "/users" | `/books/${string}`;
+type Route = "/" | "/scan/add" | "/scan/remove" | "/inventory" | "/activity" | "/export" | "/users" | "/support" | `/books/${string}`;
 type ScanApiResponse = ScanResult & {
   state: AppState;
   stats?: ReturnType<typeof dashboardStats>;
@@ -195,6 +195,7 @@ export function BookshopApp() {
           <NavLink route="/activity" label="Activity" activeRoute={route} />
           {currentUser.role === "ADMIN" ? <NavLink route="/export" label="Export" activeRoute={route} /> : null}
           {currentUser.role === "ADMIN" ? <NavLink route="/users" label="Users" activeRoute={route} /> : null}
+          <NavLink route="/support" label="Support" activeRoute={route} />
         </nav>
         <main>
           {route === "/" ? (
@@ -219,6 +220,8 @@ export function BookshopApp() {
             <ExportPage state={state} onDownload={downloadCsv} />
           ) : route === "/users" && currentUser.role === "ADMIN" ? (
             <UsersPage state={state} />
+          ) : route === "/support" ? (
+            <SupportPage />
           ) : (
             <Forbidden />
           )}
@@ -757,6 +760,29 @@ function UsersPage({ state }: { state: AppState }) {
   );
 }
 
+function SupportPage() {
+  return (
+    <section className="page">
+      <div className="page-header">
+        <div>
+          <h1>Support</h1>
+          <p className="muted">For questions, issues, or collaboration, contact the project maintainer.</p>
+        </div>
+      </div>
+      <section className="panel support-panel">
+        <a href="https://github.com/hajalibayram" target="_blank" rel="noreferrer">
+          GitHub
+          <span>github.com/hajalibayram</span>
+        </a>
+        <a href="https://www.linkedin.com/in/hajalibayram" target="_blank" rel="noreferrer">
+          LinkedIn
+          <span>linkedin.com/in/hajalibayram</span>
+        </a>
+      </section>
+    </section>
+  );
+}
+
 function Forbidden() {
   return (
     <section className="page panel">
@@ -869,7 +895,16 @@ function navigate(nextRoute: Route) {
 
 function parseRoute(hash: string): Route {
   const route = hash.replace(/^#/, "") || "/";
-  if (route === "/" || route === "/scan/add" || route === "/scan/remove" || route === "/inventory" || route === "/activity" || route === "/export" || route === "/users") {
+  if (
+    route === "/" ||
+    route === "/scan/add" ||
+    route === "/scan/remove" ||
+    route === "/inventory" ||
+    route === "/activity" ||
+    route === "/export" ||
+    route === "/users" ||
+    route === "/support"
+  ) {
     return route;
   }
   if (route.startsWith("/books/")) return route as Route;
